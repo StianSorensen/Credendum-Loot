@@ -1,0 +1,17 @@
+## Interface: 30400
+## Title: Credloot
+## Author: Toa
+## Notes: Credendum Lootsystem
+## Version: 1.00.1
+## DefaultState: enabled
+
+# Libraries
+libraries.xml
+
+Credloot.lua
+MasterLooterUI.lua
+
+JSON.lua
+
+#DB
+DB/test.lua
