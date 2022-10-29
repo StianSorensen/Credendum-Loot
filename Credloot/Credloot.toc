@@ -8,10 +8,13 @@
 # Libraries
 libraries.xml
 
-Credloot.lua
 MLUI.lua
 PR.lua
+Interface.lua
+tableSet.lua
 JSON.lua
 
 #DB
-DB/test.lua
+DB/APGP.lua
+DB/Wishlist.lua
+DB/Recived Item.lua

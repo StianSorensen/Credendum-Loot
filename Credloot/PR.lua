@@ -24,5 +24,3 @@ for character, data in pairs(APGP) do
     print(character, APGP[character]["PR"])
 end
 end
-
---GShowPR = ShowPR()

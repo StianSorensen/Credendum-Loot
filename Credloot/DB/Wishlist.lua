@@ -44,4 +44,16 @@ Wishlist = {
 				}, -- [4]
 						}
 			}
-			
+
+Wishlist2 = {
+	["40332"] = {
+		["zhypa"]{
+			["prio"] = 1,
+			["standing"] = 0.87,
+		},
+		["theintersect"]{
+			["prio"] = 2,
+			["standing"] = 0.82,
+		},
+		},
+	}	

@@ -4,7 +4,6 @@
 local AceGUI = LibStub("AceGUI-3.0")
 
 
-
 MasterLooterUI = {
     ItemBoxHoldsValidItem = false,
     PlayersTable = {},
@@ -14,6 +13,7 @@ MasterLooterUI = {
     },
 };
 
+	
 --Slash command for å åpne vinduet
 SLASH_CREDLOOT1 = "/cl";
 SLASH_CREDLOOT2 = "/clo";
@@ -24,7 +24,6 @@ local Window = AceGUI:Create("Frame")
 Window:SetCallback("OnClose",function(widget) AceGUI:Release(widget) end)
 Window:SetTitle("Credendum Loot")
 Window:SetLayout("Flow")
-
 
 		--First Row (Item link)
 		local FirstRow = AceGUI:Create("SimpleGroup");
@@ -38,17 +37,23 @@ Window:SetLayout("Flow")
                 ItemIcon:SetImage(MasterLooterUI.Defaults.itemIcon);
                 ItemIcon:SetImageSize(30, 30);
                 ItemIcon:SetWidth(40);
-                FirstRow:AddChild(ItemIcon);
-				
+				FirstRow:AddChild(ItemIcon);
                  
 				--Item Textbox
                 local ItemBox = AceGUI:Create("EditBox");
 				ItemBox:DisableButton(true);
                 ItemBox:SetHeight(20);
                 ItemBox:SetWidth(170);
-                FirstRow:AddChild(ItemBox);
+				ItemBox:SetCallback("OnTextChanged", function (EditBox, _, itemLink)
+						local itemId =  select(3, strfind(itemLink, "item:(%d+)"))
+						ItemIcon:SetImage(GetItemIcon(itemLink))
+						if itemLink ~= nil then
+							MasterLooterUI.ItemBoxHoldsValidItem = true else 
+							MasterLooterUI.ItemBoxHoldsValidItem  = false end 
+					end); -- Update item info when input value changes
 				
-				--Show a gametooltip if the icon shown belongs to an item
+					FirstRow:AddChild(ItemBox);
+			
                 ItemIcon:SetCallback("OnEnter", function()
                     if (not MasterLooterUI.ItemBoxHoldsValidItem) then
                         return;
@@ -116,12 +121,10 @@ Window:SetLayout("Flow")
 			PlayerNameBox:SetWidth(120);
 			SecondRow:AddChild(PlayerNameBox);
 
-	
 		local ThirdRow = AceGUI:Create("SimpleGroup");
 		ThirdRow:SetLayout("FILL");
 		ThirdRow:SetFullWidth(true);
 		ThirdRow:SetHeight(150);
 		Window:AddChild(ThirdRow);	
-	
-	
+		
 end
