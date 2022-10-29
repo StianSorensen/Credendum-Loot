@@ -43,7 +43,7 @@ APGP = {
     }, -- [4]
 }
 
--- Go over all received items
+--[[-- Go over all received items
 for character, items in pairs(Reciveditem) do
     -- Since the character can receive more than 1 item, loop all the items for that character
     for k, item in pairs(items) do
@@ -63,4 +63,4 @@ for character, data in pairs(APGP) do
         APGP[character]["PR"] = APGP[character]["AP"] / denominator
     end
     print(character, APGP[character]["PR"])
-end
+end]]--

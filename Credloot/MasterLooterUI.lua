@@ -68,7 +68,7 @@ f:SetLayout("Flow")
 				local btnPIroll = AceGUI:Create("Button")
 				btnPIroll:SetWidth(80)
 				btnPIroll:SetText("PI Roll")
-				btnPIroll:SetCallback("OnClick", function() print("PI roll") end)
+				btnPIroll:SetCallback("OnClick", function() print(DB.test.PR) end)
 				FirstRow:AddChild(btnPIroll)
 
 				--Create a PI Roll button
