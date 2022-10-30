@@ -22,5 +22,12 @@ for character, data in pairs(APGP) do
         APGP[character]["PR"] = APGP[character]["AP"] / denominator
     end
     print(character, APGP[character]["PR"])
+    
+end   
 end
+
+for items, character in pairs(Wishlist) do
+    --if Whislist[items] == itemID then
+        print(items[character])
+    --end
 end

@@ -24,6 +24,11 @@ local Window = AceGUI:Create("Frame")
 Window:SetCallback("OnClose",function(widget) AceGUI:Release(widget) end)
 Window:SetTitle("Credendum Loot")
 Window:SetLayout("Flow")
+Window:SetWidth(600);
+Window:SetHeight(450);
+Window:EnableResize(false);
+Window.frame:SetFrameStrata("HIGH");
+Window.statustext:GetParent():Hide(); -- Hide the statustext bar
 
 		--First Row (Item link)
 		local FirstRow = AceGUI:Create("SimpleGroup");
@@ -51,7 +56,7 @@ Window:SetLayout("Flow")
 							MasterLooterUI.ItemBoxHoldsValidItem = true else 
 							MasterLooterUI.ItemBoxHoldsValidItem  = false end 
 					end); -- Update item info when input value changes
-				
+						
 					FirstRow:AddChild(ItemBox);
 			
                 ItemIcon:SetCallback("OnEnter", function()
@@ -80,7 +85,7 @@ Window:SetLayout("Flow")
 				local btnAward = AceGUI:Create("Button")
 				btnAward:SetWidth(80)
 				btnAward:SetText("Award")
-				btnAward:SetCallback("OnClick", function() print("Award") end)
+				btnAward:SetCallback("OnClick", function() print("Award") AwardItem() end)
 				FirstRow:AddChild(btnAward)
 				
 				--Create a PI Roll button
@@ -126,5 +131,22 @@ Window:SetLayout("Flow")
 		ThirdRow:SetFullWidth(true);
 		ThirdRow:SetHeight(150);
 		Window:AddChild(ThirdRow);	
-		
+
+		local FourthRow = AceGUI:Create("SimpleGroup");
+        FourthRow:SetLayout("Flow");
+        FourthRow:SetFullWidth(true);
+        FourthRow:SetHeight(50);
+        Window:AddChild(FourthRow);
+end
+
+function AwardItem()
+    local AwardWindow = AceGUI:Create("Frame")
+    AwardWindow:SetCallback("OnClose",function(widget) AceGUI:Release(widget) end)
+    AwardWindow:SetTitle("Award Loot")
+    AwardWindow:SetLayout("Flow")
+    AwardWindow:SetWidth(600);
+    AwardWindow:SetHeight(450);
+    AwardWindow:EnableResize(false);
+    AwardWindow.frame:SetFrameStrata("HIGH");
+    AwardWindow.statustext:GetParent():Hide(); -- Hide the statustext bar
 end

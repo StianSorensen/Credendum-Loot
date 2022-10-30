@@ -8,10 +8,12 @@
 # Libraries
 libraries.xml
 
+#UI
 MLUI.lua
+Reward.lua
+
+#Div
 PR.lua
-Interface.lua
-tableSet.lua
 JSON.lua
 
 #DB
