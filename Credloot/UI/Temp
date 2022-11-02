@@ -1,0 +1,189 @@
+function RollOff:refreshRollsTable()
+    GL:debug("RollOff:refreshRollsTable");
+
+    local RollTableData = {};
+    local Rolls = self.CurrentRollOff.Rolls;
+    local RollsTable = GL.Interface:getItem(GL.MasterLooterUI, "Table.Players");
+    local NumberOfRollsPerPlayer = {};
+
+    if (not RollsTable) then
+        return;
+    end
+
+    for _, Roll in pairs(Rolls) do
+        -- Determine how many times this player rolled during the current rolloff
+        NumberOfRollsPerPlayer[Roll.player] = NumberOfRollsPerPlayer[Roll.player] or 0;
+        NumberOfRollsPerPlayer[Roll.player] = NumberOfRollsPerPlayer[Roll.player] + 1;
+
+        local playerName = Roll.player;
+        local numberOfTimesRolledByPlayer = NumberOfRollsPerPlayer[Roll.player];
+        local rollPriority = Roll.priority or 1;
+
+        -- This is used to free up priority slots for soft-reserved/wishlisted etc. items
+        -- Think of it as a z-index in CSS: nasty but necessary
+        rollPriority = rollPriority + 10000;
+
+        -- Check if the player reserved the current item id
+        local rollNote = "";
+        local normalizedPlayerName = string.lower(GL:stripRealm(playerName));
+
+        -- The item is soft-reserved, make sure we add a note to the roll
+        if (GL.SoftRes:itemIdIsReservedByPlayer(self.CurrentRollOff.itemId, normalizedPlayerName)) then
+            rollPriority = 1;
+            rollNote = "Reserved";
+            local numberOfReserves = GL.SoftRes:playerReservesOnItem(self.CurrentRollOff.itemId, normalizedPlayerName);
+
+            if (numberOfReserves > 1) then
+                rollNote = string.format("%s (%sx)", rollNote, numberOfReserves);
+            end
+
+        -- The item might be on a TMB list, make sure we add the appropriate note to the roll
+        else
+            local TMBData = GL.TMB:byItemIdAndPlayer(self.CurrentRollOff.itemId, normalizedPlayerName);
+            local TopEntry = false;
+
+            for _, Entry in pairs(TMBData) do
+                (function ()
+                    -- We don't have a #1 entry yet, so take this one
+                    if (not TopEntry) then
+                        TopEntry = Entry;
+                        return;
+                    end
+
+                    -- This entry is a wishlist entry, whereas TopEntry is a prio entry (aka more important)
+                    if (TopEntry.type == GL.Data.Constants.tmbTypePrio
+                        and Entry.type == GL.Data.Constants.tmbTypeWish
+                    ) then
+                        return;
+                    end
+
+                    -- This entry is a prio entry, whereas TopEntry is a wishlist entry: override it
+                    if (TopEntry.type == GL.Data.Constants.tmbTypeWish
+                        and Entry.type == GL.Data.Constants.tmbTypePrio
+                    ) then
+                        TopEntry = Entry;
+                        return;
+                    end
+
+                    -- This entry and TopEntry are of the same type, but this entry has a lower prio (aka more important)
+                    if (Entry.prio < TopEntry.prio) then
+                        TopEntry = Entry;
+                        return;
+                    end
+                end)();
+            end
+
+            -- The roller has this item on one of his lists, add a note and change the roll sorting!
+            if (TopEntry) then
+
+                -- Prio list entries are more important than wishlist ones (and therefore get sorted on top)
+                if (TopEntry.type == GL.Data.Constants.tmbTypePrio) then
+                    rollPriority = 2;
+                    rollNote = "Priolist";
+                else
+                    rollPriority = 3;
+                    rollNote = "Wishlist";
+                end
+
+                rollPriority = rollPriority + TopEntry.prio; -- Make sure rolls of identical list positions "clump" together
+                rollNote = string.format("%s [%s]", rollNote, TopEntry.prio);
+            end
+        end
+
+        local rollerName = playerName;
+        -- If this isn't the player's first roll for the current item
+        -- then we add a number behind the players name like so: PlayerName [#]
+        if (numberOfTimesRolledByPlayer > 1) then
+            rollerName = string.format("%s [%s]", playerName, numberOfTimesRolledByPlayer);
+        end
+
+        local class = Roll.class;
+        local plusOnes = GL.PlusOnes:get(playerName);
+
+        if (GL:higherThanZero(plusOnes)) then
+            plusOnes = "+" .. plusOnes;
+        end
+
+        local Row = {
+            cols = {
+                {
+                    value = rollerName,
+                    color = GL:classRGBAColor(class),
+                },
+                {
+                    value = Roll.amount,
+                    color = GL:classRGBAColor(class),
+                },
+                {
+                    value = plusOnes,
+                    color = GL:classRGBAColor(class),
+                },
+                {
+                    value = Roll.classification,
+                    color = GL:classRGBAColor(class),
+                },
+                {
+                    value = rollNote,
+                    color = GL:classRGBAColor(class),
+                },
+                {
+                    value = rollPriority,
+                },
+            },
+        };
+        tinsert(RollTableData, Row);
+    end
+
+    RollsTable:SetData(RollTableData);
+    RollsTable:SortData();
+end
+
+local RollTableData = {};
+    local Rolls = self.CurrentRollOff.Rolls;
+    local RollsTable = GL.Interface:getItem(GL.MasterLooterUI, "Table.Players");
+    local NumberOfRollsPerPlayer = {};
+
+
+
+    -- Populate the players table with your current group members
+function Award:populatePlayersTable(itemID)
+    GL:debug("Award:populatePlayersTable");
+
+    local PlayersTable = GL.Interface:getItem(self, "Table.Players");
+
+    if (not PlayersTable) then
+        return;
+    end
+
+    PlayersTable:ClearSelection();
+
+    local topPrioForItem = self:topPrioForItem(itemID);
+
+    local TableData = {};
+    local row = 1;
+    for _, Player in pairs(GL.User:groupMembers()) do
+        local name = Player.name;
+
+        tinsert(TableData, {
+            cols = {
+                {
+                    value = name,
+                    color = GL:classRGBAColor(Player.class),
+                },
+            },
+        });
+
+        if (topPrioForItem == string.lower(GL:stripRealm(name))) then
+            PlayersTable:SetSelection(row);
+            local EditBox = GL.Interface:getItem(self, "EditBox.PlayerName");
+
+            if (EditBox and EditBox.SetText) then
+                EditBox:SetText(GL:capitalize(topPrioForItem));
+            end
+        end
+
+        row = row + 1;
+    end
+
+    PlayersTable:SetData(TableData);
+end

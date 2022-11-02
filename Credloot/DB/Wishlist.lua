@@ -46,48 +46,51 @@ Wishlist = {
 			}
 
 Wishlist2 = {
-	["40332"] = {
+	["2092"] = {
 		{
-			["character"] = "zhypa",
-			["prio"] = 1,
+			["character"] = "Zhypa",
+			["prio"] = true,
 			["type"] = 2,
 		}, -- [1]
 		{
-			["character"] = "theintersect",
-			["prio"] = 9,
+			["character"] = "Uitest",
+			["prio"] = false,
 			["type"] = 2,
 		}, -- [2]
 		{
-			["character"] = "mindlini",
-			["prio"] = 9,
+			["character"] = "Mindlini",
+			["prio"] = false,
 			["type"] = 2,
 		}, -- [3]
 		{
-			["character"] = "mentop",
-			["prio"] = 9,
+			["character"] = "Tallefjompen",
+			["prio"] = true,
 			["type"] = 2,
 		}, -- [4]
 				},
-	["40724"] = {
+	["35"] = {
 		{
-			["character"] = "zhypa",
-			["prio"] = 1,
+			["character"] = "Tallefjompen",
+			["prio"] = true,
 			["type"] = 2,
 		}, -- [1]
 		{
-			["character"] = "theintersect",
-			["prio"] = 9,
+			["character"] = "toadin",
+			["prio"] = false,
 			["type"] = 2,
 		}, -- [2]
 		{
-			["character"] = "mindlini",
-			["prio"] = 9,
+			["character"] = "Uitest",
+			["prio"] = false,
 			["type"] = 2,
 		}, -- [3]
 		{
-			["character"] = "mentop",
-			["prio"] = 9,
+			["character"] = "Mentop",
+			["prio"] = false,
 			["type"] = 2,
 		}, -- [4]
 				}
 	}
+
+
+ 

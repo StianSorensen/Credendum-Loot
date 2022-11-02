@@ -4,19 +4,23 @@
 ## Notes: Credendum Lootsystem
 ## Version: 1.00.1
 ## DefaultState: enabled
+## SavedVariables: CredlootDB
 
 # Libraries
 libraries.xml
 
 #UI
-MLUI.lua
-Reward.lua
+UI/MLUI.lua
+UI/Award.lua
+UI/PR.lua
 
 #Div
-PR.lua
 JSON.lua
+Bootstrap.lua
+
 
 #DB
 DB/APGP.lua
 DB/Wishlist.lua
 DB/Recived Item.lua
+DB/DB.lua

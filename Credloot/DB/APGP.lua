@@ -2,21 +2,28 @@ APGP = {
     ["zypha"] = {
         ["AP"] = 1300,
         ["GP"] = 650,
-        ["sum_cost"] = 0
+        ["Attendance"] = "75%",
+        ["received_prio_item_this_week"] = false,
     }, -- [1]
-    ["theintersect"] = {
+    ["tallfjompen"] = {
         ["AP"] = 1500,
         ["GP"] = 1000,
-        ["sum_cost"] = 0
+        ["Attendance"] = "75%",
+        ["received_prio_item_this_week"] = false,
     }, -- [2]
     ["mindlini"] = {
         ["AP"] = 600,
         ["GP"] = 50,
-        ["sum_cost"] = 0
+        ["Attendance"] = "25%",
+        ["received_prio_item_this_week"] = false,
     }, -- [3]
-    ["mentop"] = {
-        ["AP"] = 1500,
-        ["GP"] = 780,
-        ["sum_cost"] = 0
+    ["uitest"] = {
+        ["AP"] = 1300,
+        ["GP"] = 650,
+        ["Attendance"] = "100%",
+        ["received_prio_item_this_week"] = false,
     }, -- [4]
 }
+
+
+

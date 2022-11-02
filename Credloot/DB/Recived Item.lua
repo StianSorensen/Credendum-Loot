@@ -2,20 +2,29 @@ Reciveditem = {
     ["zypha"] = {
         {
             ["itemId"] = "40332",
-            ["prio"] = 0,
-            ["itemcost"] = 500,
+            ["priorecived"] = true,
+            ["itemcost"] = 750,
         }, -- [1]
         {
             ["itemId"] = "40724",
-            ["prio"] = 1,
-            ["itemcost"] = 750,
+            ["priorecived"] = false,
+            ["itemcost"] = 500,
         }, -- [2]
     },
-    ["mentop"] = {
+    ["tallefjompen"] = {
         {
             ["itemId"] = "40724",
-            ["prio"] = 1,
+            ["priorecived"] = true,
             ["itemcost"] = 750,
         }, -- [1]
-    }
+    },
+    ["uitest"] = {
+        {
+            ["itemId"] = "40724",
+            ["priorecived"] = false,
+            ["itemcost"] = 400,
+        }, -- [1]
+    },
 }
+
+

@@ -49,3 +49,28 @@ Classes = {
         warrior = {.77647, .607843, .42745,},
         ["death knight"] = {.77, .12, .23},
     }
+    
+    function returnClassColors(class)
+        if class == "druid" then
+            return {r = 1, g = .48627, b = .0392, a = 1}
+        elseif class == "hunter" then
+            return {r = .6666, g = .827450, b = .44705, a = 1}
+        elseif class == "mage" then
+            return {r = .4078, g = .8, b = .93725, a = 1}
+        elseif class == "paladin" then
+            return {r = .95686, g = .5490, b = .72941, a = 1}
+        elseif class == "priest" then
+            return {r = 1, g = 1, b = 1, a = 1}
+        elseif class == "rogue" then
+            return {r = 1, g = .95686, b = .40784, a = 1}
+        elseif class == "shaman" then
+            return {r = 0, g = .44, b = .87, a = 1}
+        elseif class == "warlock" then
+            return {r = .57647, g = .5098, b = .788235, a = 1}
+        elseif class == "warrior" then
+            return {r = .77647, g = .607843, b = .42745, a = 1}
+        elseif class == "death knight" then 
+            return {r = .77, g = .12, b = .23, a = 1}
+        end
+    
+    end
