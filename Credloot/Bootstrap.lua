@@ -1,7 +1,7 @@
 -- arg1 is the name of the addon, arg2 is the addon namespace
 ---@class Bootstrapper
 local appName, CL = ...;
-_G.Credloot = CL; 
+_G.Credloot = CL;
 
 CL.name = appName;
 CL._initialized = false;
@@ -23,26 +23,26 @@ CL.Ace = LibStub("AceAddon-3.0"):NewAddon(CL.name, "AceConsole-3.0", "AceComm-3.
 local frame = CreateFrame("Frame")
 frame:RegisterEvent("ADDON_LOADED")
 frame:RegisterEvent("PLAYER_LOGOUT")
-frame:SetScript("OnEvent", function(self, event, arg1) 
+frame:SetScript("OnEvent", function(self, event, arg1)
     if event == "ADDON_LOADED" and arg1 == "Credloot" then
         CL:_init()
         -- Our saved variables, if they exist, have been loaded at this point.
         --[[if  CredlootDB == nil then
             -- This is the first time this addon is loaded; set SVs to default values
             CredlootDB = {}
-        else 
-            CredlootDB = 10; 
+        else
+            CredlootDB = 10;
         end]]
-        
+
     end
 
 end)
- 
+
 
 
 ---@return void
 function CL:_init()
-   
+
     do
         local version, _, _, uiVersion = GetBuildInfo();
 
@@ -60,8 +60,9 @@ function CL:_init()
     end
 
     -- Initialize classes
-    -- self.Events:_init(self.EventFrame);
+    self.Events:_init(self.EventFrame);
     self.DB:_init();
+
     -- self.Version:_init();
     -- self.Settings:_init();
 
@@ -85,3 +86,9 @@ function CL:_init()
 -- -- Make sure to initialize the user last
 -- self.User:refresh();
 end
+
+
+-- Fire GL.bootstrap every time an addon is loaded
+CL.EventFrame = CreateFrame("FRAME", "CredLootEventFrame");
+CL.EventFrame:RegisterEvent("ADDON_LOADED");
+CL.EventFrame:SetScript("OnEvent", function (...) GL:bootstrap(...); end);

@@ -14,17 +14,18 @@ function ActualAwardItem()
     
     DB:set("Reciveditem", table)
 end
+
 --[[---@param PlayerNameRew string
 ---@param ItemNameRew string
 ---@return void]]--
+
 function AwardItem()
     
-
-
     --local ItemNameRew = tostring(ItemNameRew)
-    local itemId = tostring(itemLink)
+    local itemId = "Shadowmorn"
     local PlayerNameRew = PlayerNameRew
-    awardMessage = string.format("Award %s to %s?", itemId, PlayerNameRew)
+    --awardMessage = string.format("Award %s to %s?", itemId, PlayerNameRew)
+    awardMessage = "GI ITEM TIL DOOD"
 
     --Lager Award vindu når du trykker på Award knappen i MLUI
     local AwardWindow = AceGUI:Create("Frame")
@@ -118,7 +119,7 @@ function AwardItem()
     AwardWindow:AddChild(SecondRow);
    
     local ItemNameReward = AceGUI:Create("Label");
-    ItemNameReward:SetText(awardMessage) --("Award ".."[Worn Dagger]".." to ");
+    ItemNameReward:SetText(awardMessage);
     ItemNameReward:SetFont(_, 20, _)
     ItemNameReward:SetHeight(40);
     ItemNameReward:SetFullWidth(true); -- Minimum is 122

@@ -4,9 +4,10 @@ local _, CL = ...;
 ---@class DB
 CL.DB = {
     _initialized = false,
-    Reciveditem = {},
-    APGP = {},
-    --Wishlist2 = {},
+    ReceivedItems = {},
+    ImportedAPGP = {},
+    ImportedWishlist = {},
+    
 };
 
 local DB = CL.DB;
@@ -17,24 +18,28 @@ function DB:_init()
         return;
     end
 
-    if (not CredlootDB or not type(CredlootDB) == "table") then
+    if (not CredlootDB or not (type(CredlootDB) == "table")) then
         CredlootDB = {};
     end
 
     -- Prepare our database tables
-    CredlootDB.Reciveditem = CredlootDB.Reciveditem or {};
-    CredlootDB.APGP = CredlootDB.APGP or {};
-    -- CredlootDB.Wishlist2 = CredlootDB.Wishlist2 or {};
+    CredlootDB.ReceivedItems = CredlootDB.ReceivedItems or {};
+    CredlootDB.ImportedAPGP = CredlootDB.ImportedAPGP or {};
+    CredlootDB.ImportedWishlist = CredlootDB.ImportedWishlist or {};
+    -- CredlootDB.raidNameTable = CredlootDB.raidNameTable or {};
 
-     -- Provide a shortcut for each table
-    self.Reciveditem = CredlootDB.Reciveditem
-    self.APGP = CredlootDB.APGP
-    -- self.Wishlist2 = CredlootDB.Wishlist2
 
-    
-
+    -- Provide a shortcut for each table
+    self.ReceivedItems = CredlootDB.ReceivedItems
+    self.ImportedAPGP = CredlootDB.ImportedAPGP
+    self.ImportedWishlist = CredlootDB.ImportedWishlist
+    -- self.raidNameTable = CredlootDB.raidNameTable
+    --CL:dump(CredlootDB.ImportedWishlist)
+    CL:dump(CredlootDB.ImportedAPGP)
+    CL:dump(CredlootDB.ReceivedItems)
+    CL:dump(CredlootDB.ImportedAPGP["tallefjompen"])
     -- Fire DB:store before every logout/reload/exit
-    -- CL.Events:register("DBPlayerLogoutListener", "PLAYER_LOGOUT", self.store);
+    CL.Events:register("DBPlayerLogoutListener", "PLAYER_LOGOUT", self.store);
 
     self._initialized = true;
 end
@@ -43,11 +48,11 @@ end
 --- This is just a safety precaution and should strictly
 --- speaking not be necessary, but hey you never know!
 function DB:store()
-    
-    CredlootDB.Reciveditem = CL.Reciveditem
-    CredlootDB.APGP = CL.APGP
-    -- CredlootDB.Wishlist2 = CL.Wishlist2
-    
+    CL:debug("DB:store");
+    CredlootDB.ReceivedItems = CL.DB.ReceivedItems
+    CredlootDB.ImportedAPGP = CL.DB.ImportedAPGP
+    CredlootDB.ImportedWishlist = CL.DB.ImportedWishlist
+    -- CredlootDB.raidNameTable = CL.raidNameTable
 end
 
 --Get a value from the database, or return a default if it doesn't exist
@@ -79,7 +84,7 @@ function CL:tableSet(Table, keyString, value)
 
     local keys = CL:strSplit(keyString, ".");
     local firstKey = keys[1];
-    
+
     if (#keys == 1) then
         Table[firstKey] = value;
         return true;
@@ -164,4 +169,3 @@ end
 
 --     GL:success("Tables reset");
 -- end
-

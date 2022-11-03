@@ -9,18 +9,24 @@
 # Libraries
 libraries.xml
 
+# Data
+Data/Constants.lua
+
+# Classes
+Classes/Helpers.lua
+Classes/Events.lua
+
 #UI
 UI/MLUI.lua
 UI/Award.lua
 UI/PR.lua
+UI/ImportWishlist.lua
+UI/ImportAPGP.lua
 
 #Div
 JSON.lua
 Bootstrap.lua
-
+# Test.lua
 
 #DB
-DB/APGP.lua
-DB/Wishlist.lua
-DB/Recived Item.lua
 DB/DB.lua

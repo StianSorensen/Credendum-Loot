@@ -1,5 +1,5 @@
 Reciveditem = {
-    ["zypha"] = {
+    ["toadin"] = {
         {
             ["itemId"] = "40332",
             ["priorecived"] = true,

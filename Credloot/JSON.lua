@@ -15,11 +15,11 @@
 --
 local AUTHOR_NOTE = "-[ JSON.lua package by Jeffrey Friedl (http://regex.info/blog/lua/json) version 20161109.21 ]-"
 
-local _, GL = ...;
+local _, CL = ...;
 
-GL.JSON = {};
+CL.JSON = {};
 
-local JSON = GL.JSON;
+local JSON = CL.JSON;
 
 local default_pretty_indent  = "  "
 local default_pretty_options = { pretty = true, align_keys = false, indent = default_pretty_indent  }
@@ -536,7 +536,7 @@ function JSON:decode(text, etc, options)
     end
 
     --
-    -- apply global options
+    -- apply CLobal options
     --
     if options.decodeNumbersAsObjects == nil then
         options.decodeNumbersAsObjects = self.decodeNumbersAsObjects
@@ -619,7 +619,7 @@ local function json_string_literal(value, options)
     local newval = value:gsub(chars_to_be_escaped_in_JSON_string, backslash_replacement_function)
     if options.stringsAreUtf8 then
         --
-        -- This feels really ugly to just look into a string for the sequence of bytes that we know to be a particular utf8 character,
+        -- This feels really uCLy to just look into a string for the sequence of bytes that we know to be a particular utf8 character,
         -- but utf8 was designed purposefully to make this kind of thing possible. Still, feels dirty.
         -- I'd rather decode the byte stream into a character stream, but it's not technically needed so
         -- not technically worth it.
@@ -934,4 +934,4 @@ function JSON:new(args)
     return setmetatable(new, JSON)
 end
 
-GL:debug("JSON.lua");
+CL:debug("JSON.lua");
