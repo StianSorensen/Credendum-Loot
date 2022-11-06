@@ -35,9 +35,9 @@ function DB:_init()
     self.ImportedWishlist = CredlootDB.ImportedWishlist
     -- self.raidNameTable = CredlootDB.raidNameTable
     --CL:dump(CredlootDB.ImportedWishlist)
-    CL:dump(CredlootDB.ImportedAPGP)
-    CL:dump(CredlootDB.ReceivedItems)
-    CL:dump(CredlootDB.ImportedAPGP["tallefjompen"])
+    --CL:dump(CredlootDB.ImportedAPGP)
+    --CL:dump(CredlootDB.ReceivedItems)
+    --CL:dump(CredlootDB.ImportedAPGP.hidewell)
     -- Fire DB:store before every logout/reload/exit
     CL.Events:register("DBPlayerLogoutListener", "PLAYER_LOGOUT", self.store);
 
@@ -52,7 +52,7 @@ function DB:store()
     CredlootDB.ReceivedItems = CL.DB.ReceivedItems
     CredlootDB.ImportedAPGP = CL.DB.ImportedAPGP
     CredlootDB.ImportedWishlist = CL.DB.ImportedWishlist
-    -- CredlootDB.raidNameTable = CL.raidNameTable
+    
 end
 
 --Get a value from the database, or return a default if it doesn't exist
@@ -66,7 +66,7 @@ function DB:set(keyString, value)
 end
 
 --- Set a table value by a given key and value. Use dot notation to traverse multiple levels e.g:
---- Settings.UI.Auctioneer.offsetX can be set using GL:tableSet(myTable, "Settings.UI.Auctioneer.offsetX", myValue)
+--- Settings.UI.Auctioneer.offsetX can be set using CL:tableSet(myTable, "Settings.UI.Auctioneer.offsetX", myValue)
 --- without having to worry about tables or keys existing along the way.
 ---
 ---@param Table table
@@ -78,11 +78,11 @@ function CL:tableSet(Table, keyString, value)
         or type(keyString) ~= "string"
         or keyString == ""
     ) then
-        --GL:warning("Invalid key provided in GL:tableSet");
+        --CL:warning("Invalid key provided in CL:tableSet");
         return false;
     end
 
-    local keys = CL:strSplit(keyString, ".");
+    local keys = CL:strSplit(keyString, "."); 
     local firstKey = keys[1];
 
     if (#keys == 1) then
@@ -97,6 +97,7 @@ function CL:tableSet(Table, keyString, value)
     Table = Table[firstKey];
     return self:tableSet(Table, strjoin(".", unpack(keys)), value);
 end
+
 function CL:strSplit(s, delimiter)
     local Result = {};
 
@@ -114,10 +115,11 @@ function CL:strSplit(s, delimiter)
 end
 
 --- Get a table value by a given key. Use dot notation to traverse multiple levels e.g:
---- Settings.UI.Auctioneer.offsetX can be fetched using GL:tableGet(myTable, "Settings.UI.Auctioneer.offsetX", 0)
+--- Settings.UI.Auctioneer.offsetX can be fetched using CL:tableGet(myTable, "Settings.UI.Auctioneer.offsetX", 0)
 --- without having to worry about tables or keys existing along the way.
 --- This helper is absolutely invaluable for writing error-free code!
 ---
+
 ---@param Table table
 ---@param keyString string
 ---@param default any

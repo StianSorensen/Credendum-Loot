@@ -1,3 +1,4 @@
+-- Dependencies 
 ---@class CL : Bootstrapper
 local _, CL = ...;
 
@@ -1542,6 +1543,7 @@ end
 ---@param value any
 ---@return boolean
 function CL:tableSet(Table, keyString, value)
+    -- if @param keyString is not a string return false
     if (not keyString
         or type(keyString) ~= "string"
         or keyString == ""
@@ -1549,7 +1551,7 @@ function CL:tableSet(Table, keyString, value)
         CL:warning("Invalid key provided in CL:tableSet");
         return false;
     end
-
+    -- stringSplitt the @param keyString value on dots "."
     local keys = CL:strSplit(keyString, ".");
     local firstKey = keys[1];
 

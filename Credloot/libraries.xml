@@ -95,4 +95,9 @@
     LibDBIcon-1.0 is a small library you can throw in your LDB addon that will create a small minimap icon for you and nothing more.
     -->
     <Include file="Libs\LibDBIcon-1.0\LibDBIcon-1.0\LibDBIcon-1.0.lua" />
+
+    <!-- AceHook-3.0 offers safe Hooking/Unhooking of functions, methods and frame scripts.
+    Using AceHook-3.0 is recommended when you need to unhook your hooks again, so the hook chain isn't broken when you manually restore the original function-->
+
+    <Include file="libs\AceHook-3.0\AceHook-3.0.xml"/>
 </Ui>

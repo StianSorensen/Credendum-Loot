@@ -1,189 +1,829 @@
-function RollOff:refreshRollsTable()
-    GL:debug("RollOff:refreshRollsTable");
+---@type CL
+local _, CL = ...;
 
-    local RollTableData = {};
-    local Rolls = self.CurrentRollOff.Rolls;
-    local RollsTable = GL.Interface:getItem(GL.MasterLooterUI, "Table.Players");
-    local NumberOfRollsPerPlayer = {};
+CL.RollOff = CL.RollOff or {}; ---@type RollOff
+CL.ScrollingTable = CL.ScrollingTable or LibStub("ScrollingTable");
 
-    if (not RollsTable) then
+---@todo Refactor to interface
+---@class MasterLooterUI
+CL.MasterLooterUI = {
+    ItemBoxHoldsValidItem = false,
+    PlayersTable = {},
+    Defaults = {
+        itemIcon = "Interface\\Icons\\INV_Misc_QuestionMark",
+        itemBoxText = "",
+    },
+};
+
+local AceGUI = LibStub("AceGUI-3.0")
+local MasterLooterUI = CL.MasterLooterUI; ---@type MasterLooterUI
+local ScrollingTable = CL.ScrollingTable;
+
+--- This is the UI the person who rolls off an item uses to prepare everything e.g:
+--- Select an item
+--- Set the duration of the roll off
+--- Award the item to the winner
+---
+---@param itemLink string|nil
+---@return void
+function MasterLooterUI:draw(itemLink)
+    CL:debug("MasterLooterUI:draw");
+
+    --[[if (CL.User.isInGroup
+        and not CL.User.isMasterLooter
+        and not CL.User.hasAssist
+    ) then
+        return CL:warning("You need to be the master looter or have an assist / lead role!");
+    end]]--
+
+    -- Close the reopen masterlooter button if it exists
+    --self:closeReopenMasterLooterUIButton();
+
+    -- First we need to check if the frame hasn't been
+    -- rendered already. If so then show it (if it's hidden)
+    -- and pass the itemLink along in case one was provided
+    local Window = CL.Interface:getItem(self, "Window");
+    if (Window) then
+        if (itemLink) then
+            MasterLooterUI:passItemLink(itemLink);
+        end
+
+        -- If the frame is hidden we need to show it again
+        if (not Window:IsShown()) then
+            Window:Show();
+            --CL.Interface.AwardHistory:draw(Window);
+        end
+
         return;
     end
 
-    for _, Roll in pairs(Rolls) do
-        -- Determine how many times this player rolled during the current rolloff
-        NumberOfRollsPerPlayer[Roll.player] = NumberOfRollsPerPlayer[Roll.player] or 0;
-        NumberOfRollsPerPlayer[Roll.player] = NumberOfRollsPerPlayer[Roll.player] + 1;
+    local HorizonalSpacer, VerticalSpacer;
 
-        local playerName = Roll.player;
-        local numberOfTimesRolledByPlayer = NumberOfRollsPerPlayer[Roll.player];
-        local rollPriority = Roll.priority or 1;
+    -- Create a container/parent frame
+    Window = AceGUI:Create("Frame", "CREDENDUM_MASTERLOOTERUI_WINDOW");
+    Window:SetTitle("Credendum Loot");
+    Window:SetLayout("Flow");
+    Window:SetWidth(430);
+    Window:SetHeight(350);
+    Window:EnableResize(false);
+    Window.frame:SetFrameStrata("HIGH");
+    Window.statustext:GetParent():Hide(); -- Hide the statustext bar
+    Window:SetCallback("OnClose", function(widget)
+        self:close();
+    end);
+    CL.Interface:setItem(self, "Window", Window);
 
-        -- This is used to free up priority slots for soft-reserved/wishlisted etc. items
-        -- Think of it as a z-index in CSS: nasty but necessary
-        rollPriority = rollPriority + 10000;
+    --Window:SetPoint(CL.Interface:getPosition("RollOff"));
 
-        -- Check if the player reserved the current item id
-        local rollNote = "";
-        local normalizedPlayerName = string.lower(GL:stripRealm(playerName));
 
-        -- The item is soft-reserved, make sure we add a note to the roll
-        if (GL.SoftRes:itemIdIsReservedByPlayer(self.CurrentRollOff.itemId, normalizedPlayerName)) then
-            rollPriority = 1;
-            rollNote = "Reserved";
-            local numberOfReserves = GL.SoftRes:playerReservesOnItem(self.CurrentRollOff.itemId, normalizedPlayerName);
+        --[[
+            FIRST ROW (ITEM ICON AND LINK BOX)
+        ]]
 
-            if (numberOfReserves > 1) then
-                rollNote = string.format("%s (%sx)", rollNote, numberOfReserves);
+        local FirstRow = AceGUI:Create("SimpleGroup");
+        FirstRow:SetLayout("Flow");
+        FirstRow:SetFullWidth(true);
+        FirstRow:SetHeight(30);
+        Window:AddChild(FirstRow);
+
+                --[[
+                    ITEM ICON
+                ]]
+
+                local ItemIcon = AceGUI:Create("Icon");
+                ItemIcon:SetImage(MasterLooterUI.Defaults.itemIcon);
+                ItemIcon:SetImageSize(30, 30);
+                ItemIcon:SetWidth(40);
+                FirstRow:AddChild(ItemIcon);
+                CL.Interface:setItem(self, "Item", ItemIcon);
+
+                --[[
+                    ITEM TEXTBOX
+                ]]
+                local ItemBox = AceGUI:Create("EditBox");
+
+                ItemBox:DisableButton(true);
+                ItemBox:SetHeight(20);
+                ItemBox:SetWidth(170);
+                ItemBox:SetCallback("OnTextChanged", function () MasterLooterUI:ItemBoxChanged() end); -- Update item info when input value changes
+                ItemBox:SetCallback("OnEnterPressed", function () MasterLooterUI:ItemBoxChanged() end); -- Update item info when item is dragged on top (makes no sense to use OnEnterPressed I know)
+
+                CL.Interface:setItem(self, "Item", ItemBox);
+
+                FirstRow:AddChild(ItemBox);
+
+                -- Show a gametooltip if the icon shown belongs to an item
+                ItemIcon:SetCallback("OnEnter", function()
+                    if (not MasterLooterUI.ItemBoxHoldsValidItem) then
+                        return;
+                    end
+
+                    local itemLink = ItemBox:GetText();
+                    GameTooltip:SetOwner(ItemIcon.frame, "ANCHOR_TOP");
+                    GameTooltip:SetHyperlink(itemLink);
+                    GameTooltip:Show();
+                end)
+
+                ItemIcon:SetCallback("OnLeave", function()
+                    GameTooltip:Hide();
+                end)
+
+                --[[
+                    BUTTON PADDER
+                    CONTAINER FOR PADDING PURPOSES ONLY
+                ]]
+
+                local ButtonPadder = AceGUI:Create("SimpleGroup");
+                ButtonPadder:SetLayout("Flow");
+                ButtonPadder:SetWidth(14);
+                ButtonPadder:SetHeight(30);
+                FirstRow:AddChild(ButtonPadder);
+
+                --[[
+                    START/STOP BUTTON
+                ]]
+
+                local StartButton = AceGUI:Create("Button");
+                StartButton:SetText("Start");
+                StartButton:SetWidth(80);
+                StartButton:SetHeight(20);
+                StartButton:SetDisabled(true);
+                StartButton:SetCallback("OnClick", function()
+                    if (CL.RollOff:announceStart(
+                        CL.Interface:getItem(self, "EditBox.Item"):GetText(),
+                        CL.Interface:getItem(self, "EditBox.Duration"):GetText(),
+                        CL.Interface:getItem(self, "EditBox.ItemNote"):GetText()
+                    )) then
+                        CL.RollOff.inProgress = true;
+
+                        if (CL.Settings:get("UI.RollOff.closeOnStart")) then
+                            self:close();
+                        end
+                    end;
+
+                    MasterLooterUI:updateWidgets();
+                end);
+                FirstRow:AddChild(StartButton);
+                CL.Interface:setItem(self, "Start", StartButton);
+
+                --[[
+                    STOP BUTTON
+                ]]
+
+                local StopButton = AceGUI:Create("Button");
+                StopButton:SetText("Stop");
+                StopButton:SetWidth(80);
+                StopButton:SetHeight(20);
+                StopButton:SetDisabled(true);
+                StopButton:SetCallback("OnClick", function()
+                    CL.RollOff:announceStop();
+                end);
+                FirstRow:AddChild(StopButton);
+                CL.Interface:setItem(self, "Stop", StopButton);
+
+        --[[
+            SECOND ROW
+        ]]
+
+        local SecondRow = AceGUI:Create("SimpleGroup");
+        SecondRow:SetLayout("Flow");
+        SecondRow:SetFullWidth(true);
+        SecondRow:SetHeight(20);
+        Window:AddChild(SecondRow);
+
+                --[[
+                    SPACER
+                ]]
+
+                VerticalSpacer = AceGUI:Create("SimpleGroup");
+                VerticalSpacer:SetLayout("Flow");
+                VerticalSpacer:SetWidth(8);
+                VerticalSpacer:SetHeight(20);
+                SecondRow:AddChild(VerticalSpacer);
+
+                --[[
+                    ITEM NOTE LABEL
+                ]]
+
+                local ItemNoteLabel = AceGUI:Create("Label");
+                ItemNoteLabel:SetText("NOTE");
+                ItemNoteLabel:SetHeight(20);
+                ItemNoteLabel:SetWidth(35);
+                SecondRow:AddChild(ItemNoteLabel);
+
+                --[[
+                    ITEM NOTE
+                ]]
+
+                local ItemNote = AceGUI:Create("EditBox");
+                ItemNote:DisableButton(true);
+                ItemNote:SetHeight(20);
+                ItemNote:SetWidth(340);
+                SecondRow:AddChild(ItemNote);
+                CL.Interface:setItem(self, "ItemNote", ItemNote);
+
+        --[[
+            THID ROW (ROLL TIMER)
+        ]]
+
+        local ThirdRow = AceGUI:Create("SimpleGroup");
+        ThirdRow:SetLayout("Flow");
+        ThirdRow:SetFullWidth(true);
+        ThirdRow:SetHeight(20);
+        Window:AddChild(ThirdRow);
+
+                --[[
+                    SPACER
+                ]]
+
+                VerticalSpacer = AceGUI:Create("SimpleGroup");
+                VerticalSpacer:SetLayout("Flow");
+                VerticalSpacer:SetWidth(8);
+                VerticalSpacer:SetHeight(20);
+                ThirdRow:AddChild(VerticalSpacer);
+
+                --[[
+                    TIMER LABEL
+                ]]
+
+                local TimerLabel = AceGUI:Create("Label");
+                TimerLabel:SetText("TIMER (s)");
+                TimerLabel:SetHeight(20);
+                TimerLabel:SetWidth(55);
+                ThirdRow:AddChild(TimerLabel);
+
+                --[[
+                    TIMER TEXTBOX
+                ]]
+
+                local Duration = AceGUI:Create("EditBox");
+                Duration:DisableButton(true);
+                Duration:SetHeight(20);
+                Duration:SetWidth(40);
+                --Duration:SetText(CL.Settings:get("UI.RollOff.timer", 15));
+                ThirdRow:AddChild(Duration);
+                CL.Interface:setItem(self, "Duration", Duration);
+
+                --[[
+                    SPACER
+                ]]
+
+                VerticalSpacer = AceGUI:Create("SimpleGroup");
+                VerticalSpacer:SetLayout("Flow");
+                VerticalSpacer:SetWidth(20);
+                VerticalSpacer:SetHeight(30);
+                ThirdRow:AddChild(VerticalSpacer);
+
+                --[[
+                    RESET BUTTON
+                ]]
+                local ClearButton = AceGUI:Create("Button");
+                ClearButton:SetText("Clear");
+                ClearButton:SetWidth(66);
+                ClearButton:SetHeight(20);
+                ClearButton:SetDisabled(false);
+                ClearButton:SetCallback("OnClick", function()
+                    MasterLooterUI:reset();
+                    CL.RollOff:reset();
+                end);
+                ThirdRow:AddChild(ClearButton);
+                CL.Interface:setItem(self, "Clear", ClearButton);
+
+                --[[
+                    AWARD BUTTON
+                ]]
+
+                local AwardButton = AceGUI:Create("Button");
+                AwardButton:SetText("Award");
+                AwardButton:SetWidth(70);
+                AwardButton:SetHeight(20);
+                AwardButton:SetDisabled(true);
+                AwardButton:SetCallback("OnClick", function()
+                    local PlayersTable = CL.Interface:getItem(self, "Table.Players");
+                    local selected = PlayersTable:GetRow(PlayersTable:GetSelection());
+
+                    if (not selected
+                        or not type(selected) == "table"
+                    ) then
+                        return CL:warning("You need to select a player first");
+                    end
+
+                    local RollType = (function()
+                        for _, RollType in pairs(CL.Settings:get("RollTracking.Brackets", {})) do
+                            if (RollType[1] == selected.cols[4].value) then
+                                return RollType;
+                            end
+                        end
+
+                        return {};
+                    end)();
+                    local osRoll = CL:toboolean(RollType[5]);
+                    local plusOneRoll = CL:toboolean(RollType[6]);
+                    local boostedRoll = selected.cols[4].value == CL.Settings:get("BoostedRolls.identifier", "BR");
+                    return CL.RollOff:award(selected.cols[1].value, CL.Interface:getItem(self, "EditBox.Item"):GetText(), osRoll, boostedRoll, plusOneRoll);
+                end);
+                ThirdRow:AddChild(AwardButton);
+                CL.Interface:setItem(self, "Award", AwardButton);
+
+                HorizonalSpacer = AceGUI:Create("SimpleGroup");
+                HorizonalSpacer:SetLayout("Flow");
+                HorizonalSpacer:SetWidth(24);
+                HorizonalSpacer:SetHeight(1);
+                ThirdRow:AddChild(HorizonalSpacer);
+
+                --[[
+                    DISENCHANT BUTTON
+                ]]
+                local DisenchantButton = AceGUI:Create("Button");
+                DisenchantButton:SetText("Disenchant");
+                DisenchantButton:SetWidth(100);
+                DisenchantButton:SetHeight(20);
+                DisenchantButton:SetDisabled(true);
+                DisenchantButton:SetCallback("OnClick", function()
+                    local itemLink = CL.Interface:getItem(self, "EditBox.Item"):GetText();
+
+                    CL.PackMule:disenchant(itemLink, true);
+                    self:close();
+                end);
+                ThirdRow:AddChild(DisenchantButton);
+                CL.Interface:setItem(self, "Disenchant", DisenchantButton);
+        --[[
+            FOURTH ROW (GROUP MEMBERS)
+        ]]
+
+        local FourthRow = AceGUI:Create("SimpleGroup");
+        FourthRow:SetLayout("Flow");
+        FourthRow:SetFullWidth(true);
+        FourthRow:SetHeight(50);
+        Window:AddChild(FourthRow);
+
+        MasterLooterUI:drawPlayersTable(Window.frame);
+
+        --[[
+            FIFTH ROW (AUTO CLOSE CHECKBOX)
+        ]]
+
+        local FifthRow = AceGUI:Create("SimpleGroup");
+        FifthRow:SetLayout("Flow");
+        FifthRow:SetFullWidth(true);
+        FifthRow:SetHeight(20);
+        Window:AddChild(FifthRow);
+
+        --[[
+            TABLE SETTINGS BUTTON
+        ]]
+       --[[ local RollTrackingSettingsButton = CL.UI:createSettingsButton(
+            FifthRow.frame,
+            "RollTracking",
+            nil,
+            nil,
+            true
+        );
+        RollTrackingSettingsButton:SetPoint("TOPRIGHT", FifthRow.frame, "TOPRIGHT", -10, -8);
+        self.RollTrackingSettingsButton = RollTrackingSettingsButton;]]
+
+        local PlayersTableFrame = AceGUI:Create("SimpleGroup");
+        PlayersTableFrame:SetLayout("fixed");
+        PlayersTableFrame:SetFullWidth(true);
+        PlayersTableFrame:SetHeight(158);
+        FifthRow:AddChild(PlayersTableFrame);
+
+      
+
+
+    if (itemLink
+        and type(itemLink) == "string"
+    ) then
+        MasterLooterUI:passItemLink(itemLink);
+    end
+
+    --CL.Interface.AwardHistory:draw(Window);
+end
+
+---@return void
+function MasterLooterUI:close()
+    CL:debug("MasterLooterUI:close");
+
+    -- When the master looter closes the master loot window with a master
+    -- loot still in progress we show the reopen master looter button
+    if (CL.RollOff.inProgress) then
+        self:drawReopenMasterLooterUIButton();
+    end
+
+    local Window = CL.Interface:getItem(self, "Window");
+    if (Window) then
+        -- Store the frame's last position for future play sessions
+        CL.Interface:storePosition(Window, "RollOff");
+        Window:Hide();
+    end
+end
+
+-- Close the reopen masterlooter button
+function MasterLooterUI:closeReopenMasterLooterUIButton()
+    -- Close the reopen masterlooter button if it exists
+    local OpenMasterLooterButton = CL.Interface:getItem(self, "Frame.OpenMasterLooterButton");
+
+    if (OpenMasterLooterButton) then
+        OpenMasterLooterButton:Hide();
+    end
+end
+
+-- This button allows the master looter to easily reopen the
+-- master looter window when it's closed with a roll in progress
+-- This is very common in hectic situations where the master looter has to participate in combat f.e.
+function MasterLooterUI:drawReopenMasterLooterUIButton()
+    CL:debug("MasterLooterUI:drawReopenMasterLooterUIButton");
+
+    -- Only draw the button if the master looter window is closed
+    local Window = CL.Interface:getItem(self, "Window");
+    if (Window and Window:IsShown()) then
+        return;
+    end
+
+    local Button = CL.Interface:getItem(self, "Frame.OpenMasterLooterButton");
+
+    if (Button) then
+        Button:SetNormalTexture(CL.RollOff.CurrentRollOff.itemIcon or "Interface\\Icons\\INV_Misc_QuestionMark");
+        Button:Show();
+        return;
+    end
+
+    local texture = CL.RollOff.CurrentRollOff.itemIcon or "Interface\\Icons\\INV_Misc_QuestionMark";
+    Button = CreateFrame("Button", "ReopenMasterLooterButton", UIParent, Frame);
+    Button:SetSize(44, 44);
+    Button:SetNormalTexture(texture);
+    Button:SetText("text");
+    Button:SetPoint(CL.Interface:getPosition("ReopenMasterLooterUIButton"));
+
+    Button:SetMovable(true);
+    Button:EnableMouse(true);
+    Button:SetClampedToScreen(true);
+    Button:SetFrameStrata("HIGH");
+    Button:RegisterForDrag("LeftButton");
+    Button:SetScript("OnDragStart", Button.StartMoving);
+    Button:SetScript("OnDragStop", function()
+        Button:StopMovingOrSizing();
+
+        -- Store the frame's last position for future play sessions
+        CL.Interface:storePosition(Button, "ReopenMasterLooterUIButton");
+    end);
+
+    local ButtonBackground = Button:CreateTexture(nil, "BACKGROUND");
+    ButtonBackground:SetAllPoints(Button);
+    ButtonBackground:SetTexture("Interface\\Icons\\INV_Misc_QuestionMark");
+    ButtonBackground:SetTexCoord(0, 1, 0.23, 0.77);
+    ButtonBackground:SetBlendMode("ADD");
+    Button.ButtonBackground = ButtonBackground;
+
+    local ButtonHighlight = Button:CreateTexture(nil, "HIGHLIGHT");
+    ButtonHighlight:SetAllPoints(Button);
+    ButtonHighlight:SetTexture("Interface\\PaperDollInfoFrame\\UI-Character-Tab-Highlight");
+    ButtonHighlight:SetTexCoord(0, 1, 0.23, 0.77);
+    ButtonHighlight:SetBlendMode("ADD");
+    Button.ButtonHighlight = ButtonHighlight;
+
+    Button:SetScript("OnMouseUp", function (_, button)
+        if (button == "LeftButton") then
+            self:draw();
+        end
+    end);
+
+    Button:SetScript("OnEnter", function()
+        GameTooltip:SetOwner(Button, "ANCHOR_TOP");
+        GameTooltip:SetText("Open master looter window");
+        GameTooltip:Show();
+    end);
+
+    Button:SetScript("OnLeave", function()
+        GameTooltip:Hide();
+    end);
+
+    CL.Interface:setItem(self, "OpenMasterLooterButton", Button);
+end
+
+function MasterLooterUI:drawPlayersTable(parent)
+    CL:debug("MasterLooterUI:drawPlayersTable");
+
+    -- Combined width of all colums should be 340
+    local columns = {
+        --[[ Player name ]]
+        {
+            name = "Player",
+            width = 120,
+            align = "LEFT",
+            color = {
+                r = 0.5,
+                g = 0.5,
+                b = 1.0,
+                a = 1.0
+            },
+            colorargs = nil,
+        },
+        --[[ Roll ]]
+        {
+            name = "Roll",
+            width = 35,
+            align = "LEFT",
+            color = {
+                r = 0.5,
+                g = 0.5,
+                b = 1.0,
+                a = 1.0
+            },
+            colorargs = nil,
+            defaultsort = CL.Data.Constants.ScrollingTable.descending,
+        },
+        --[[ +1 ]]
+        {
+            name = "+1",
+            width = 35,
+            align = "LEFT",
+            color = {
+                r = 0.5,
+                g = 0.5,
+                b = 1.0,
+                a = 1.0
+            },
+            colorargs = nil,
+        },
+        --[[ ROLL TYPE: MS/OS etc ]]
+        {
+            name = "Type",
+            width = 63,
+            align = "LEFT",
+            color = {
+                r = 0.5,
+                g = 0.5,
+                b = 1.0,
+                a = 1.0
+            },
+            colorargs = nil,
+        },
+        --[[ Reserved / TMB etc ]]
+        {
+            name = "Note",
+            width = 88,
+            align = "LEFT",
+            color = {
+                r = 0.5,
+                g = 0.5,
+                b = 1.0,
+                a = 1.0
+            },
+            colorargs = nil,
+        },
+        --[[ PRIORITY (NOT VISIBLE, FOR SORTING ONLY! ]]
+        {
+            name = "",
+            width = 1,
+            align = "LEFT",
+            color = {
+                r = 0,
+                g = 0,
+                b = 0,
+                a = 0
+            },
+            colorargs = nil,
+            sort = CL.Data.Constants.ScrollingTable.ascending,
+            sortnext = 2,
+        },
+    };
+
+    local Table = ScrollingTable:CreateST(columns, 8, 15, nil, parent);
+    Table:SetWidth(340);
+    Table:EnableSelection(true);
+
+    Table:RegisterEvents({
+        -- Show a tooltip that contains the items that the roller already won so far
+        OnEnter = function (rowFrame, _, data, _, _, realrow)
+            -- Make sure something is actually highlighted, better safe than lua error
+            if (not CL:higherThanZero(realrow)
+                or type(data) ~= "table"
+                or not data[realrow]
+                or not data[realrow].cols
+                or not data[realrow].cols[1]
+            ) then
+                return;
             end
 
-        -- The item might be on a TMB list, make sure we add the appropriate note to the roll
-        else
-            local TMBData = GL.TMB:byItemIdAndPlayer(self.CurrentRollOff.itemId, normalizedPlayerName);
-            local TopEntry = false;
+            local roller = data[realrow].cols[1].value;
 
-            for _, Entry in pairs(TMBData) do
-                (function ()
-                    -- We don't have a #1 entry yet, so take this one
-                    if (not TopEntry) then
-                        TopEntry = Entry;
-                        return;
-                    end
-
-                    -- This entry is a wishlist entry, whereas TopEntry is a prio entry (aka more important)
-                    if (TopEntry.type == GL.Data.Constants.tmbTypePrio
-                        and Entry.type == GL.Data.Constants.tmbTypeWish
-                    ) then
-                        return;
-                    end
-
-                    -- This entry is a prio entry, whereas TopEntry is a wishlist entry: override it
-                    if (TopEntry.type == GL.Data.Constants.tmbTypeWish
-                        and Entry.type == GL.Data.Constants.tmbTypePrio
-                    ) then
-                        TopEntry = Entry;
-                        return;
-                    end
-
-                    -- This entry and TopEntry are of the same type, but this entry has a lower prio (aka more important)
-                    if (Entry.prio < TopEntry.prio) then
-                        TopEntry = Entry;
-                        return;
-                    end
-                end)();
+            -- If the roller has a roll number suffixed to his name
+            -- e.g. "playerName [2]" then make sure to remove that number
+            local openingBracketPosition = string.find(roller, " %[");
+            if (openingBracketPosition) then
+                roller = string.sub(roller, 1, openingBracketPosition - 1);
             end
 
-            -- The roller has this item on one of his lists, add a note and change the roll sorting!
-            if (TopEntry) then
+            local ItemsWonByRollerInTheLast8Hours = CL.AwardedLoot:byWinner(roller, GetServerTime() - (8 * 60 * 60));
 
-                -- Prio list entries are more important than wishlist ones (and therefore get sorted on top)
-                if (TopEntry.type == GL.Data.Constants.tmbTypePrio) then
-                    rollPriority = 2;
-                    rollNote = "Priolist";
-                else
-                    rollPriority = 3;
-                    rollNote = "Wishlist";
+            if (CL:empty(ItemsWonByRollerInTheLast8Hours)) then
+                return;
+            end
+
+            GameTooltip:ClearLines();
+            GameTooltip:SetOwner(rowFrame, "ANCHOR_RIGHT");
+            GameTooltip:AddLine(string.format("Items won by %s:", roller));
+            GameTooltip:AddLine(" ");
+
+            for _, Entry in pairs(ItemsWonByRollerInTheLast8Hours) do
+                local receivedString = " (received)";
+                if (not Entry.received) then
+                    receivedString = " (not received yet)";
                 end
 
-                rollPriority = rollPriority + TopEntry.prio; -- Make sure rolls of identical list positions "clump" together
-                rollNote = string.format("%s [%s]", rollNote, TopEntry.prio);
+                local OSString = "";
+                if (Entry.OS) then
+                    OSString = " (OS)"
+                end
+
+                local BRString = "";
+                if (CL:higherThanZero(Entry.BRCost)) then
+                    BRString = string.format(" (BR: %s)", Entry.BRCost);
+                end
+
+                local line = string.format("%s%s%s%s",
+                    Entry.itemLink,
+                    OSString,
+                    BRString,
+                    receivedString
+                );
+
+                GameTooltip:AddLine(line);
             end
-        end
 
-        local rollerName = playerName;
-        -- If this isn't the player's first roll for the current item
-        -- then we add a number behind the players name like so: PlayerName [#]
-        if (numberOfTimesRolledByPlayer > 1) then
-            rollerName = string.format("%s [%s]", playerName, numberOfTimesRolledByPlayer);
-        end
+            GameTooltip:Show();
+        end,
+        OnLeave = function ()
+            GameTooltip:Hide();
+        end,
+    });
 
-        local class = Roll.class;
-        local plusOnes = GL.PlusOnes:get(playerName);
-
-        if (GL:higherThanZero(plusOnes)) then
-            plusOnes = "+" .. plusOnes;
-        end
-
-        local Row = {
-            cols = {
-                {
-                    value = rollerName,
-                    color = GL:classRGBAColor(class),
-                },
-                {
-                    value = Roll.amount,
-                    color = GL:classRGBAColor(class),
-                },
-                {
-                    value = plusOnes,
-                    color = GL:classRGBAColor(class),
-                },
-                {
-                    value = Roll.classification,
-                    color = GL:classRGBAColor(class),
-                },
-                {
-                    value = rollNote,
-                    color = GL:classRGBAColor(class),
-                },
-                {
-                    value = rollPriority,
-                },
-            },
-        };
-        tinsert(RollTableData, Row);
-    end
-
-    RollsTable:SetData(RollTableData);
-    RollsTable:SortData();
+    Table.frame:SetPoint("BOTTOM", parent, "BOTTOM", 0, 50);
+    CL.Interface:setItem(self, "Players", Table);
 end
 
-local RollTableData = {};
-    local Rolls = self.CurrentRollOff.Rolls;
-    local RollsTable = GL.Interface:getItem(GL.MasterLooterUI, "Table.Players");
-    local NumberOfRollsPerPlayer = {};
+-- The item box contents changed
+function MasterLooterUI:ItemBoxChanged()
+    CL:debug("MasterLooterUI:ItemBoxChanged");
 
+    local itemLink = CL.Interface:getItem(self, "EditBox.Item"):GetText();
 
+    MasterLooterUI:passItemLink(itemLink);
+end
 
-    -- Populate the players table with your current group members
-function Award:populatePlayersTable(itemID)
-    GL:debug("Award:populatePlayersTable");
+-- Pass an item link to the master looter UI
+-- This method is used when alt clicking an item
+-- in a loot window or when executing /gl roll [itemlink]
+function MasterLooterUI:passItemLink(itemLink)
+    CL:debug("MasterLooterUI:passItemLink");
 
-    local PlayersTable = GL.Interface:getItem(self, "Table.Players");
-
-    if (not PlayersTable) then
+    if (not CL.Interface:getItem(self, "Window")) then
         return;
     end
 
-    PlayersTable:ClearSelection();
-
-    local topPrioForItem = self:topPrioForItem(itemID);
-
-    local TableData = {};
-    local row = 1;
-    for _, Player in pairs(GL.User:groupMembers()) do
-        local name = Player.name;
-
-        tinsert(TableData, {
-            cols = {
-                {
-                    value = name,
-                    color = GL:classRGBAColor(Player.class),
-                },
-            },
-        });
-
-        if (topPrioForItem == string.lower(GL:stripRealm(name))) then
-            PlayersTable:SetSelection(row);
-            local EditBox = GL.Interface:getItem(self, "EditBox.PlayerName");
-
-            if (EditBox and EditBox.SetText) then
-                EditBox:SetText(GL:capitalize(topPrioForItem));
-            end
-        end
-
-        row = row + 1;
+    if (CL.RollOff.inProgress) then
+        return CL:warning("A roll is currently in progress");
     end
 
-    PlayersTable:SetData(TableData);
+    CL.Interface:getItem(self, "EditBox.Item"):SetText(itemLink);
+    return MasterLooterUI:update();
 end
+
+-- Update the master looter UI based on the value of the ItemBox input
+function MasterLooterUI:update()
+    CL:debug("MasterLooterUI:update");
+
+    local IconWidget = CL.Interface:getItem(self, "Icon.Item");
+    local itemLink = CL.Interface:getItem(self, "EditBox.Item"):GetText();
+
+    -- If the item link is not valid then
+    --   Show the default question mark icon
+    --   Remove the item priority string
+    if (not itemLink or itemLink == "") then
+        CL:debug("MasterLooterUI:update. Item link is invalid");
+
+        MasterLooterUI.ItemBoxHoldsValidItem = false;
+        IconWidget:SetImage(MasterLooterUI.Defaults.itemIcon);
+
+        MasterLooterUI:updateItemNote();
+        MasterLooterUI:updateWidgets();
+        return;
+    end
+
+    -- The item's icon is in the 10th position
+    local icon = select(10, GetItemInfo(itemLink));
+
+    if (icon) then
+        CL.Interface:getItem(self, "Table.Players"):ClearSelection();
+
+        IconWidget:SetImage(icon);
+        MasterLooterUI.ItemBoxHoldsValidItem = true;
+    else
+        MasterLooterUI.ItemBoxHoldsValidItem = false;
+        IconWidget:SetImage(MasterLooterUI.Defaults.itemIcon);
+    end
+
+    MasterLooterUI:updateItemNote();
+    MasterLooterUI:updateWidgets();
+end
+
+-- Update the item priority string
+function MasterLooterUI:updateItemNote()
+    CL:debug("MasterLooterUI:updateItemNote");
+
+    --local defaultNote = CL.Settings:get("MasterLooting.defaultRollOffNote", "/roll 100 for MS or /roll 99 for OS");
+    local ItemNote = CL.Interface:getItem(self, "EditBox.ItemNote");
+    local itemLink = CL.Interface:getItem(self, "EditBox.Item"):GetText();
+
+    -- We don't have a valid itemlink at hand, clear the note
+    if (not MasterLooterUI.ItemBoxHoldsValidItem) then
+        return ItemNote:SetText(defaultNote);
+    end
+
+    --local itemPriority = CL.LootPriority:getPriority(itemLink);
+
+    -- If there is no item priority then keep the item label as-is
+    if (not itemPriority
+        or CL.Settings:get("MasterLooting.alwaysUseDefaultNote", false)
+    ) then
+        return ItemNote:SetText(defaultNote);
+    end
+
+    -- There is a priority for this item
+    itemPriority = table.concat(itemPriority, " > ");
+    ItemNote:SetText(itemPriority);
+end
+
+-- Reset the roll off UI to its defaults
+function MasterLooterUI:reset(keepItem)
+    CL:debug("MasterLooterUI:reset");
+
+    keepItem = CL:toboolean(keepItem);
+
+    if (not keepItem) then
+        CL.Interface:getItem(self, "Icon.Item"):SetImage(MasterLooterUI.Defaults.itemIcon);
+        CL.Interface:getItem(self, "EditBox.Item"):SetText(MasterLooterUI.Defaults.itemText);
+        CL.Interface:getItem(self, "EditBox.Duration"):SetText(CL.Settings:get("UI.RollOff.timer"));
+        CL.Interface:getItem(self, "EditBox.ItemNote"):SetText("");
+        MasterLooterUI.ItemBoxHoldsValidItem = false;
+    end
+
+    CL.Interface:getItem(self, "Table.Players"):ClearSelection();
+    CL.Interface:getItem(self, "Table.Players"):ClearSelection();
+    CL.Interface:getItem(self, "Table.Players"):SetData({}, true);
+
+    MasterLooterUI:updateWidgets();
+end
+
+-- Update the widgets based on the current state of the roll off
+function MasterLooterUI:updateWidgets()
+    CL:debug("MasterLooterUI:updateWidgets");
+
+    -- If the itembox doesn't hold a valid item link then:
+    --   The start button should not be available
+    --   The stop button should be available
+    --   The item box should be available
+    if (not MasterLooterUI.ItemBoxHoldsValidItem) then
+        CL.Interface:getItem(self, "Button.Start"):SetDisabled(true);
+        CL.Interface:getItem(self, "Button.Stop"):SetDisabled(true);
+        CL.Interface:getItem(self, "EditBox.Item"):SetDisabled(false);
+        CL.Interface:getItem(self, "Button.Award"):SetDisabled(true);
+        CL.Interface:getItem(self, "Button.Disenchant"):SetDisabled(true);
+
+        return;
+    end
+
+    -- The value in the itembox is valid (e.g. contains a valid item link)
+
+    -- If no roll off is currently in progress then:
+    --   The start button should be available
+    --   The stop button should not be available
+    --   The award button should not be available
+    --   The clear button should not be available
+    --   The item box should be available so we can enter an item link
+    if (not CL.RollOff.inProgress) then
+        CL.Interface:getItem(self, "Button.Start"):SetDisabled(false);
+        CL.Interface:getItem(self, "Button.Stop"):SetDisabled(true);
+        CL.Interface:getItem(self, "Button.Award"):SetDisabled(false);
+        CL.Interface:getItem(self, "Button.Disenchant"):SetDisabled(false);
+        CL.Interface:getItem(self, "Button.Clear"):SetDisabled(false);
+        CL.Interface:getItem(self, "EditBox.Item"):SetDisabled(false);
+
+    -- If a roll off is currently in progress then:
+    --   The start button should not be available
+    --   The stop button should be available
+    --   The award button should not be available
+    --   The clear button should not be available
+    --   The item box should not be available
+    else
+        CL.Interface:getItem(self, "Button.Start"):SetDisabled(true);
+        CL.Interface:getItem(self, "Button.Stop"):SetDisabled(false);
+        CL.Interface:getItem(self, "Button.Award"):SetDisabled(true);
+        CL.Interface:getItem(self, "Button.Disenchant"):SetDisabled(true);
+        CL.Interface:getItem(self, "Button.Clear"):SetDisabled(true);
+        CL.Interface:getItem(self, "EditBox.Item"):SetDisabled(true);
+    end
+end
+
+CL:debug("MasterLooterUI.lua");

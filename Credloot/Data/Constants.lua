@@ -1,3 +1,4 @@
+-- No dependencies 
 ---@type CL
 local _, CL = ...;
 

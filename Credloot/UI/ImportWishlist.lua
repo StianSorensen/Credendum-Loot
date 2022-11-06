@@ -58,7 +58,7 @@ function ImportWishlist()
             local segments = CL:strSplit(line, ":");
             local segmentCount = #segments;
 
-            if (segmentCount < 3) then
+            if (segmentCount < 4) then
                 return CL:warning(string.format("Invalid data provided in line: '%s': missing character, item id or priority", line));
             end
 
@@ -70,7 +70,7 @@ function ImportWishlist()
             else
                 isPrio = false
             end
-
+            local itemcost = strtrim(segments[4]);
             -- CL:dump(WishlistData)
             WishlistData[itemId] = WishlistData[itemId] or {}
 
@@ -79,6 +79,7 @@ function ImportWishlist()
                 itemId = itemId,
                 isPrio = isPrio,
                 itemId = itemId,
+                itemcost = itemcost
             });
         end
 
